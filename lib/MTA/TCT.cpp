@@ -597,7 +597,7 @@ struct DOTGraphTraits<TCT*> : public DefaultDOTGraphTraits
 
     typedef TCTNode NodeType;
     typedef NodeType::iterator ChildIteratorType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DefaultDOTGraphTraits(isSimple)
     {
     }

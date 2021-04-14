@@ -902,7 +902,7 @@ struct DOTGraphTraits<CHGraph*> : public DefaultDOTGraphTraits
 {
 
     typedef CHNode NodeType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DefaultDOTGraphTraits(isSimple)
     {
     }

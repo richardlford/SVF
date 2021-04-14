@@ -183,7 +183,7 @@ struct DOTGraphTraits<OfflineConsG*> : public DOTGraphTraits<PAG*>
 {
 
     typedef ConstraintNode NodeType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DOTGraphTraits<PAG*>(isSimple)
     {
     }

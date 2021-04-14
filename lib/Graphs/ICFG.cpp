@@ -447,7 +447,7 @@ struct DOTGraphTraits<ICFG*> : public DOTGraphTraits<PAG*>
 {
 
     typedef ICFGNode NodeType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DOTGraphTraits<PAG*>(isSimple)
     {
     }

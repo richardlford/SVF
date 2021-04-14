@@ -28,6 +28,7 @@
  *      Author: Yulei Sui
  */
 
+#include <Util/Options.h>
 #include "Util/SVFModule.h"
 #include "SVF-FE/LLVMUtil.h"
 #include "Graphs/PTACallGraph.h"
@@ -333,7 +334,7 @@ struct DOTGraphTraits<PTACallGraph*> : public DefaultDOTGraphTraits
 
     typedef PTACallGraphNode NodeType;
     typedef NodeType::iterator ChildIteratorType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DefaultDOTGraphTraits(isSimple)
     {
     }
