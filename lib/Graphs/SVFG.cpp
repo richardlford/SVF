@@ -716,7 +716,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
 {
 
     typedef SVFGNode NodeType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DOTGraphTraits<PAG*>(isSimple)
     {
     }

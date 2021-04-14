@@ -1110,7 +1110,7 @@ struct DOTGraphTraits<PAG*> : public DefaultDOTGraphTraits
 
     typedef PAGNode NodeType;
     typedef NodeType::iterator ChildIteratorType;
-    DOTGraphTraits(bool isSimple = false) :
+    DOTGraphTraits(bool isSimple = Options::SimpleDotGraph) :
         DefaultDOTGraphTraits(isSimple)
     {
     }

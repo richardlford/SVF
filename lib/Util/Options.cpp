@@ -5,6 +5,12 @@
 
 namespace SVF
 {
+    /// When dumping to a DOT graph, choose simple form.
+    const llvm::cl::opt<bool> Options::SimpleDotGraph(
+        "simple-dot-graph",
+        llvm::cl::init(false),
+        llvm::cl::desc("Produce simple form of DOT graphs"));
+
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",
         llvm::cl::init(false),
