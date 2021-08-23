@@ -77,7 +77,7 @@ void MemObj::init(const Value *val)
     else
     {
         writeWrnMsg("try to create an object with a non-pointer type.");
-        writeWrnMsg(val->getName());
+        writeWrnMsg(val->getName().str());
         writeWrnMsg("(" + getSourceLoc(val) + ")");
         assert(false && "Memory object must be held by a pointer-typed ref value.");
     }
@@ -664,6 +664,7 @@ void SymbolTableInfo::collectVal(const Value *val)
  */
 void SymbolTableInfo::collectObj(const Value *val)
 {
+    val = getGlobalRep(val);
     ValueToIDMapTy::iterator iter = objSymMap.find(val);
     if (iter == objSymMap.end())
     {

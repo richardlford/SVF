@@ -11,22 +11,6 @@
 namespace SVF
 {
 
-/// Templated function to insert an element into a Set, CondSet, or NodeBS.
-template <typename Key, typename KeySet>
-void insertKey(const Key &key, KeySet &keySet)
-{
-    keySet.insert(key);
-}
-
-// The template parameters are unnecessary, obviously, but removing it would
-// require us to create a .cpp. For one function, that seems to add more
-// than this hack.
-template <typename Key, typename KeySet>
-void insertKey(const NodeID &key, NodeBS &keySet)
-{
-    keySet.set(key);
-}
-
 template <typename Key, typename KeySet, typename Data, typename DataSet>
 class MutableDFPTData;
 
@@ -98,12 +82,15 @@ public:
 
     virtual void clearPts(const Key& var, const Data& element) override
     {
+        clearSingleRevPts(revPtsMap[element], var);
         ptsMap[var].reset(element);
     }
 
     virtual void clearFullPts(const Key& var) override
     {
-        ptsMap[var].clear();
+        DataSet &pts = ptsMap[var];
+        clearRevPts(pts, var);
+        pts.clear();
     }
 
     /// Methods to support type inquiry through isa, cast, and dyn_cast:
@@ -150,7 +137,10 @@ private:
     }
     inline void addSingleRevPts(KeySet &revData, const Key& tgr)
     {
-        if (this->rev) insertKey<Key, KeySet>(tgr, revData);
+        if (this->rev)
+        {
+            SVFUtil::insertKey(tgr, revData);
+        }
     }
     inline void addRevPts(const DataSet &ptsData, const Key& tgr)
     {
@@ -158,6 +148,20 @@ private:
         {
             for(iterator it = ptsData.begin(), eit = ptsData.end(); it!=eit; ++it)
                 addSingleRevPts(revPtsMap[*it], tgr);
+        }
+    }
+    inline void clearSingleRevPts(KeySet &revSet, const Key &k)
+    {
+        if (this->rev)
+        {
+            SVFUtil::removeKey(k, revSet);
+        }
+    }
+    inline void clearRevPts(const DataSet &pts, const Key &k)
+    {
+        if (this->rev)
+        {
+            for (const Data &d : pts) clearSingleRevPts(revPtsMap[d], k);
         }
     }
     ///@}
@@ -493,7 +497,7 @@ public:
     static inline bool classof(const PTData<Key, KeySet, Data, DataSet>* ptd)
     {
         return ptd->getPTDTY() == BaseDFPTData::MutDataFlow
-               || ptd->getPTDTY() == BaseDFPTData::IncMutDataFlow;
+               || ptd->getPTDTY() == BaseDFPTData::MutIncDataFlow;
     }
     ///@}
 
@@ -586,7 +590,7 @@ protected:
 
 /// Incremental version of the mutable data-flow points-to data structure.
 template <typename Key, typename KeySet, typename Data, typename DataSet>
-class IncMutableDFPTData : public MutableDFPTData<Key, KeySet, Data, DataSet>
+class MutableIncDFPTData : public MutableDFPTData<Key, KeySet, Data, DataSet>
 {
 public:
     typedef PTData<Key, KeySet, Data, DataSet> BasePTData;
@@ -607,9 +611,9 @@ private:
 
 public:
     /// Constructor
-    IncMutableDFPTData(bool reversePT = true, PTDataTy ty = BasePTData::IncMutDataFlow) : BaseMutDFPTData(reversePT, ty) { }
+    MutableIncDFPTData(bool reversePT = true, PTDataTy ty = BasePTData::MutIncDataFlow) : BaseMutDFPTData(reversePT, ty) { }
 
-    virtual ~IncMutableDFPTData() { }
+    virtual ~MutableIncDFPTData() { }
 
     virtual inline bool updateDFInFromIn(LocID srcLoc, const Key& srcVar, LocID dstLoc, const Key& dstVar) override
     {
@@ -722,14 +726,14 @@ public:
 
     /// Methods to support type inquiry through isa, cast, and dyn_cast:
     ///@{
-    static inline bool classof(const IncMutableDFPTData<Key, KeySet, Data, DataSet> *)
+    static inline bool classof(const MutableIncDFPTData<Key, KeySet, Data, DataSet> *)
     {
         return true;
     }
 
     static inline bool classof(const PTData<Key, KeySet, Data, DataSet>* ptd)
     {
-        return ptd->getPTDTY() == BasePTData::IncMutDataFlow;
+        return ptd->getPTDTY() == BasePTData::MutIncDataFlow;
     }
     ///@}
 private:

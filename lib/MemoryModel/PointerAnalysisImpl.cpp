@@ -19,6 +19,7 @@ using namespace SVFUtil;
 using namespace cppUtil;
 using namespace std;
 
+PersistentPointsToCache<PointsTo> BVDataPTAImpl::ptCache = PersistentPointsToCache<PointsTo>(PointsTo());
 
 /*!
  * Constructor
@@ -30,26 +31,42 @@ BVDataPTAImpl::BVDataPTAImpl(PAG* p, PointerAnalysis::PTATY type, bool alias_che
             || type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA || type == AndersenWaveDiffWithType_WPA
             || type == AndersenSCD_WPA || type == AndersenSFR_WPA)
     {
-        // Only maintain reverse points-to when the analysis is field-sensitive.
-        ptD = new MutDiffPTDataTy(Options::MaxFieldLimit != 0);
+        // Only maintain reverse points-to when the analysis is field-sensitive, as objects turning
+        // field-insensitive is all it is used for.
+        bool maintainRevPts = Options::MaxFieldLimit != 0;
+        if (Options::ptDataBacking == PTBackingType::Mutable) ptD = new MutDiffPTDataTy(maintainRevPts);
+        else if (Options::ptDataBacking == PTBackingType::Persistent) ptD = new PersDiffPTDataTy(getPtCache(), maintainRevPts);
+        else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
     }
     else if (type == Steensgaard_WPA)
     {
-        ptD = new MutDiffPTDataTy(false);
+        // Steensgaard is only field-insensitive (for now?), so no reverse points-to.
+        if (Options::ptDataBacking == PTBackingType::Mutable) ptD = new MutDiffPTDataTy(false);
+        else if (Options::ptDataBacking == PTBackingType::Persistent) ptD = new PersDiffPTDataTy(getPtCache(), false);
+        else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
     }
     else if (type == FSSPARSE_WPA || type == FSTBHC_WPA)
     {
         if (Options::INCDFPTData)
-            ptD = new IncMutDFPTDataTy(false);
+        {
+            if (Options::ptDataBacking == PTBackingType::Mutable) ptD = new MutIncDFPTDataTy(false);
+            else if (Options::ptDataBacking == PTBackingType::Persistent) ptD = new PersIncDFPTDataTy(getPtCache(), false);
+            else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
+        }
         else
-            ptD = new MutDFPTDataTy(false);
+        {
+            if (Options::ptDataBacking == PTBackingType::Mutable) ptD = new MutDFPTDataTy(false);
+            else if (Options::ptDataBacking == PTBackingType::Persistent) ptD = new PersDFPTDataTy(getPtCache(), false);
+            else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
+        }
     }
     else if (type == VFS_WPA)
     {
-        ptD = new MutVersionedPTDataTy(false);
+        if (Options::ptDataBacking == PTBackingType::Mutable) ptD = new MutVersionedPTDataTy(false);
+        else if (Options::ptDataBacking == PTBackingType::Persistent) ptD = new PersVersionedPTDataTy(getPtCache(), false);
+        else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
     }
-    else
-        assert(false && "no points-to data available");
+    else assert(false && "no points-to data available");
 
     ptaImplTy = BVDataImpl;
 }
@@ -88,25 +105,20 @@ void BVDataPTAImpl::writeToFile(const string& filename)
     }
 
     // Write analysis results to file
+    for (auto it = pag->begin(), ie = pag->end(); it != ie; ++it) {
+        NodeID var = it->first;
+        const PointsTo &pts = getPts(var);
 
-    for (auto it = pag->begin(), ie = pag->end(); it != ie; ++it)
-        {
-            NodeID var = it->first;
-            const PointsTo &pts = getPts(var);
-
-            F.os() << var << " -> { ";
-            if (pts.empty())
-            {
-                F.os() << " ";
+        stringstream ss;
+        F.os() << var << " -> { ";
+        if (pts.empty()) {
+            F.os() << " ";
+        } else {
+            for (NodeID n: pts) {
+                F.os() << n << " ";
             }
-            else
-            {
-                for (auto it = pts.begin(), ie = pts.end(); it != ie; ++it)
-                {
-                    F.os() << *it << " ";
-                }
-            }
-            F.os() << "}\n";
+        }
+        F.os() << "}\n";
     }
 
 
@@ -120,6 +132,20 @@ void BVDataPTAImpl::writeToFile(const string& filename)
             F.os() << pag->getBaseObjNode(it->first) << " ";
             F.os() << gepObjPN->getLocationSet().getOffset() << "\n";
         }
+    }
+
+    F.os() << "------\n";
+    // Write BaseNodes insensitivity to file
+    NodeBS NodeIDs;
+    for (auto it = pag->begin(), ie = pag->end(); it != ie; ++it)
+    {
+        PAGNode* pagNode = it->second;
+        if (!isa<ObjPN>(pagNode)) continue;
+        NodeID n = pag->getBaseObjNode(it->first);
+        if (NodeIDs.test(n)) continue;
+        F.os() << n << " ";
+        F.os() << isFieldInsensitive(n) << "\n";
+        NodeIDs.set(n);
     }
 
     // Job finish and close file
@@ -155,6 +181,9 @@ bool BVDataPTAImpl::readFromFile(const string& filename)
     // Read points-to sets
     string delimiter1 = " -> { ";
     string delimiter2 = " }";
+    map<NodeID, string> nodePtsMap;
+    map<string, PointsTo> strPtsMap;
+
     while (F.good())
     {
         // Parse a single line in the form of "var -> { obj1 obj2 obj3 }"
@@ -170,21 +199,34 @@ bool BVDataPTAImpl::readFromFile(const string& filename)
         pos = pos + delimiter1.length();
         size_t len = line.length() - pos - delimiter2.length();
         string objs = line.substr(pos, len);
+        PointsTo dstPts;
+
         if (!objs.empty())
         {
+            // map the variable ID to its unique string pointer set
+            nodePtsMap[var] = objs;
+            if (strPtsMap.count(objs)) continue;
+
             istringstream ss(objs);
             NodeID obj;
             while (ss.good())
             {
                 ss >> obj;
-                ptD->addPts(var, obj);
+                dstPts.set(obj);
             }
+            // map the string pointer set to the parsed PointsTo set
+            strPtsMap[objs] = dstPts;
         }
     }
+
+    // map the variable ID to its pointer set
+    for (auto t: nodePtsMap)
+        ptD->unionPts(t.first, strPtsMap[t.second]);
 
     // Read PAG offset nodes
     while (F.good())
     {
+        if (line == "------")     break;
         // Parse a single line in the form of "ID baseNodeID offset"
         istringstream ss(line);
         NodeID id;
@@ -196,6 +238,20 @@ bool BVDataPTAImpl::readFromFile(const string& filename)
         assert(id == n && "Error adding GepObjNode into PAG!");
 
         getline(F, line);
+    }
+
+    // Read BaseNode insensitivity
+    while (F.good())
+    {
+        getline(F, line);
+        // Parse a single line in the form of "baseNodeID insensitive"
+        istringstream ss(line);
+        NodeID base;
+        bool insensitive;
+        ss >> base >> insensitive;
+
+        if (insensitive)
+            setObjFieldInsensitive(base);
     }
 
     // Update callgraph
@@ -284,6 +340,55 @@ void BVDataPTAImpl::onTheFlyCallGraphSolve(const CallSiteToFunPtrMap& callsites,
     }
 }
 
+/*!
+ * Normalize points-to information for field-sensitive analysis
+ */
+void BVDataPTAImpl::normalizePointsTo() {
+    PAG::MemObjToFieldsMap &memToFieldsMap = pag->getMemToFieldsMap();
+    PAG::NodeLocationSetMap &GepObjNodeMap = pag->getGepObjNodeMap();
+
+    // collect each gep node whose base node has been set as field-insensitive
+    NodeBS dropNodes;
+    for (auto t: memToFieldsMap){
+        NodeID base = t.first;
+        const MemObj* memObj = pag->getObject(base);
+        assert(memObj && "Invalid memobj in memToFieldsMap");
+        if (memObj->isFieldInsensitive()) {
+            for (NodeID id : t.second) {
+                if (SVFUtil::isa<GepObjPN>(pag->getPAGNode(id))) {
+                    dropNodes.set(id);
+                } else
+                    assert(id == base && "Not a GepObj Node or a baseObj Node?");
+            }
+        }
+    }
+
+    // remove the collected redundant gep nodes in each pointers's pts
+    for (PAG::iterator nIter = pag->begin(); nIter != pag->end(); ++nIter) {
+        NodeID n = nIter->first;
+
+        const PointsTo &tmpPts = getPts(n);
+        for (NodeID obj : tmpPts) {
+            if (!dropNodes.test(obj))
+                continue;
+            NodeID baseObj = pag->getBaseObjNode(obj);
+            clearPts(n, obj);
+            addPts(n, baseObj);
+        }
+    }
+
+    // clear GepObjNodeMap and memToFieldsMap for redundant gepnodes
+    // and remove those nodes from pag
+    for (NodeID n: dropNodes) {
+        NodeID base = pag->getBaseObjNode(n);
+        GepObjPN *gepNode = SVFUtil::dyn_cast<GepObjPN>(pag->getPAGNode(n));
+        const LocationSet ls = gepNode->getLocationSet();
+        GepObjNodeMap.erase(std::make_pair(base, ls));
+        memToFieldsMap[base].reset(n);
+
+        pag->removeGNode(gepNode);
+    }
+}
 
 /*!
  * Return alias results based on our points-to/alias analysis

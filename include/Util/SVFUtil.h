@@ -117,7 +117,7 @@ inline bool cmpPts (const PointsTo& lpts,const PointsTo& rpts)
     }
 }
 
-typedef struct
+typedef struct equalPointsTo
 {
     bool operator()(const PointsTo& lhs, const PointsTo& rhs) const
     {
@@ -240,6 +240,44 @@ std::string  getSourceLoc(const Value *val);
 std::string  getSourceLocOfFunction(const Function *F);
 const std::string value2String(const Value* value);
 //@}
+
+/// Inserts an element into a Set/CondSet (with ::insert).
+template <typename Key, typename KeySet>
+inline void insertKey(const Key &key, KeySet &keySet)
+{
+    keySet.insert(key);
+}
+
+/// Inserts a NodeID into a NodeBS.
+inline void insertKey(const NodeID &key, NodeBS &keySet)
+{
+    keySet.set(key);
+}
+
+/// Removes an element from a Set/CondSet (or anything implementing ::erase).
+template <typename Key, typename KeySet>
+inline void removeKey(const Key &key, KeySet &keySet)
+{
+    keySet.erase(key);
+}
+
+/// Removes a NodeID from a NodeBS.
+inline void removeKey(const NodeID &key, NodeBS &keySet)
+{
+    keySet.reset(key);
+}
+
+/// Function to call when alarm for time limit hits.
+void timeLimitReached(int signum);
+
+/// Starts an analysis timer. If timeLimit is 0, sets no timer.
+/// If an alarm has already been set, does not set another.
+/// Returns whether we set a timer or not.
+bool startAnalysisLimitTimer(unsigned timeLimit);
+
+/// Stops an analysis timer. limitTimerSet indicates whether the caller set the
+/// timer or not (return value of startLimitTimer).
+void stopAnalysisLimitTimer(bool limitTimerSet);
 
 } // End namespace SVFUtil
 

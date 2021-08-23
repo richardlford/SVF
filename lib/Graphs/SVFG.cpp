@@ -156,6 +156,26 @@ const std::string ThreadMHPIndSVFGEdge::toString() const {
     return rawstr.str();
 }
 
+const Value* StmtSVFGNode::getValue() const {
+    return getPAGEdge()->getValue();
+}
+
+const Value* CmpVFGNode::getValue() const {
+    return getRes()->getValue();
+}
+
+const Value* BinaryOPVFGNode::getValue() const {
+    return getRes()->getValue();
+}
+
+const Value* PHIVFGNode::getValue() const {
+    return getRes()->getValue();
+}
+
+const Value* ArgumentVFGNode::getValue() const {
+    return param->getValue();
+}
+
 
 FormalOUTSVFGNode::FormalOUTSVFGNode(NodeID id, const MemSSA::RETMU* exit): MRSVFGNode(id, FPOUT), mu(exit)
 {
@@ -524,6 +544,25 @@ void SVFG::dump(const std::string& file, bool simple)
     GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
 }
 
+std::set<const SVFGNode*> SVFG::fromValue(const llvm::Value* value) const
+{
+    PAG* pag = PAG::getPAG();
+    std::set<const SVFGNode*> ret;
+    // search for all PAGEdges first
+    for (const PAGEdge* pagEdge : pag->getValueEdges(value)) {
+        PAGEdgeToStmtVFGNodeMapTy::const_iterator it = PAGEdgeToStmtVFGNodeMap.find(pagEdge);
+        if (it != PAGEdgeToStmtVFGNodeMap.end()) {
+            ret.emplace(it->second);
+        }
+    }
+    // add all PAGNodes
+    PAGNode* pagNode = pag->getPAGNode(pag->getValueNode(value));
+    if(hasDef(pagNode)) {
+        ret.emplace(getDefSVFGNode(pagNode));
+    }
+    return ret;
+}
+
 /**
  * Get all inter value flow edges at this indirect call site, including call and return edges.
  */
@@ -729,7 +768,11 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
 
     /// isNodeHidden - If the function returns true, the given node is not
     /// displayed in the graph
+#if LLVM_VERSION_MAJOR >= 12
+    static bool isNodeHidden(SVFGNode *node, SVFG*) {
+#else
     static bool isNodeHidden(SVFGNode *node) {
+#endif
         return node->getInEdges().empty() && node->getOutEdges().empty();
     }
 
