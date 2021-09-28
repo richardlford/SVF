@@ -30,6 +30,7 @@
 #include "SABER/LeakChecker.h"
 #include "SABER/FileChecker.h"
 #include "SABER/DoubleFreeChecker.h"
+#include "SABER/UninitChecker.h"
 
 using namespace llvm;
 using namespace SVF;
@@ -45,6 +46,9 @@ static llvm::cl::opt<bool> FILECHECKER("fileck", llvm::cl::init(false),
 
 static llvm::cl::opt<bool> DFREECHECKER("dfree", llvm::cl::init(false),
                                         llvm::cl::desc("Double Free Detection"));
+
+static llvm::cl::opt<bool> UNINITCHECKER("uninitck", llvm::cl::init(false),
+                                         llvm::cl::desc("Uninitialized Variable Detection"));
 
 int main(int argc, char ** argv)
 {
@@ -67,6 +71,8 @@ int main(int argc, char ** argv)
         saber = new FileChecker();
     else if(DFREECHECKER)
         saber = new DoubleFreeChecker();
+    else if(UNINITCHECKER)
+        saber = new UninitChecker();
     else
         saber = new LeakChecker();  // if no checker is specified, we use leak checker as the default one.
 
