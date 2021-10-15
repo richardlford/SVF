@@ -135,6 +135,7 @@ void VersionedFlowSensitiveStat::performStat()
     PTNumStatMap["ProcessedGep"]      = vfspta->numOfProcessedGep;
     PTNumStatMap["ProcessedLoad"]     = vfspta->numOfProcessedLoad;
     PTNumStatMap["ProcessedStore"]    = vfspta->numOfProcessedStore;
+    PTNumStatMap["ProcessedAllocUninit"] = vfspta->numOfProcessedAllocUninit;
     PTNumStatMap["ProcessedPhi"]      = vfspta->numOfProcessedPhi;
     PTNumStatMap["ProcessedAParam"]   = vfspta->numOfProcessedActualParam;
     PTNumStatMap["ProcessedFRet"]     = vfspta->numOfProcessedFormalRet;

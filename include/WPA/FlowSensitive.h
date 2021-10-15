@@ -64,6 +64,7 @@ public:
         updateCallGraphTime = directPropaTime = indirectPropaTime = 0;
         numOfProcessedAddr = numOfProcessedCopy = numOfProcessedGep = 0;
         numOfProcessedLoad = numOfProcessedStore = 0;
+        numOfProcessedAllocUninit = 0;
         numOfProcessedPhi = numOfProcessedActualParam = numOfProcessedFormalRet = 0;
         numOfProcessedMSSANode = 0;
         maxSCCSize = numOfSCC = numOfNodesInSCC = 0;
@@ -223,6 +224,7 @@ protected:
     virtual bool processGep(const GepSVFGNode* edge);
     virtual bool processLoad(const LoadSVFGNode* load);
     virtual bool processStore(const StoreSVFGNode* store);
+    virtual bool processAllocUninit(const AllocUninitSVFGNode* alloc);
     //@}
 
     /// Update call graph
@@ -283,6 +285,7 @@ protected:
     Size_t numOfProcessedPhi;	/// Number of processed Phi node
     Size_t numOfProcessedLoad;	/// Number of processed Load node
     Size_t numOfProcessedStore;	/// Number of processed Store node
+    Size_t numOfProcessedAllocUninit;	/// Number of processed AllocUninit node
     Size_t numOfProcessedActualParam;	/// Number of processed actual param node
     Size_t numOfProcessedFormalRet;	/// Number of processed formal ret node
     Size_t numOfProcessedMSSANode;	/// Number of processed mssa node

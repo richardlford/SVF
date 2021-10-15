@@ -131,6 +131,11 @@ public:
     }
     //@}
 
+    void dump() const
+    {
+        SVFUtil::outs() << *this;
+    }
+
     virtual const std::string toString() const;
 };
 

@@ -252,6 +252,7 @@ void FlowSensitiveStat::performStat()
     PTNumStatMap["ProcessedGep"] = fspta->numOfProcessedGep;
     PTNumStatMap["ProcessedLoad"] = fspta->numOfProcessedLoad;
     PTNumStatMap["ProcessedStore"] = fspta->numOfProcessedStore;
+    PTNumStatMap["ProcessedAllocUninit"] = fspta->numOfProcessedAllocUninit;
     PTNumStatMap["ProcessedPhi"] = fspta->numOfProcessedPhi;
     PTNumStatMap["ProcessedAParam"] = fspta->numOfProcessedActualParam;
     PTNumStatMap["ProcessedFRet"] = fspta->numOfProcessedFormalRet;

@@ -85,6 +85,44 @@ public:
 };
 
 /*
+ * SVFG Node stands for alloc chi node (address-taken variables)
+ */
+class AllocUninitSVFGNode : public MRSVFGNode
+{
+private:
+    const MemSSA::ALLOCCHI* chi;
+
+public:
+    /// Constructor
+    AllocUninitSVFGNode(NodeID id, const MemSSA::ALLOCCHI* alloc): MRSVFGNode(id, AllocUninit), chi(alloc)
+    {
+        cpts = alloc->getMR()->getPointsTo();
+    }
+    /// AllocCHI
+    inline const MemSSA::ALLOCCHI* getAllocChi() const
+    {
+        return chi;
+    }
+    /// Methods for support type inquiry through isa, cast, and dyn_cast:
+    //@{
+    static inline bool classof(const AllocUninitSVFGNode *)
+    {
+        return true;
+    }
+    static inline bool classof(const VFGNode *node)
+    {
+      return node->getNodeKind() == AllocUninit;
+    }
+    static inline bool classof(const GenericVFGNodeTy *node)
+    {
+        return node->getNodeKind() == AllocUninit;
+    }
+    //@}
+
+    virtual const std::string toString() const;
+};
+
+/*
  * SVFG Node stands for entry chi node (address-taken variables)
  */
 class FormalINSVFGNode : public MRSVFGNode

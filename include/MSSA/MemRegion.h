@@ -99,6 +99,8 @@ public:
         return str;
     }
 
+    void dump() const;
+
     /// add the hash function here to sort elements and remove
     /// and remove duplicated element in the set (binary tree comparision)
     //@{
@@ -152,6 +154,7 @@ public:
     //@{
     typedef Map<const LoadPE*, MRSet> LoadsToMRsMap;
     typedef Map<const StorePE*, MRSet> StoresToMRsMap;
+    typedef Map<const AddrPE*, MRSet> AllocsToMRsMap;
     typedef Map<const CallBlockNode*, MRSet> CallSiteToMRsMap;
     //@}
 
@@ -159,6 +162,7 @@ public:
     //@{
     typedef Map<const LoadPE*, PointsTo> LoadsToPointsToMap;
     typedef Map<const StorePE*, PointsTo> StoresToPointsToMap;
+    typedef Map<const AddrPE*, PointsTo> AllocsToPointsToMap;
     typedef Map<const CallBlockNode*, PointsTo> CallSiteToPointsToMap;
     //@}
 
@@ -205,6 +209,8 @@ private:
     LoadsToMRsMap loadsToMRsMap;
     /// Map a store PAG Edge to its memory regions sets in order for inserting chis in Memory SSA
     StoresToMRsMap storesToMRsMap;
+    /// Map a store PAG Edge to its memory regions sets in order for inserting chis in Memory SSA
+    AllocsToMRsMap allocsToMRsMap;
     /// Map a callsite to its refs regions
     CallSiteToMRsMap callsiteToRefMRsMap;
     /// Map a callsite to its mods regions
@@ -213,6 +219,8 @@ private:
     LoadsToPointsToMap loadsToPointsToMap;
     /// Map a store PAG Edge to its CPts set map
     StoresToPointsToMap	storesToPointsToMap;
+    /// Map a store PAG Edge to its CPts set map
+    AllocsToPointsToMap	allocsToPointsToMap;
     /// Map a callsite to it refs cpts set
     CallSiteToPointsToMap callsiteToRefPointsToMap;
     /// Map a callsite to it mods cpts set
@@ -349,6 +357,15 @@ protected:
         funToPointsToMap[fun].insert(cpts);
         addModSideEffectOfFunction(fun,cpts);
     }
+    inline void addCPtsToAlloc(PointsTo& cpts, const AddrPE *alloc, const SVFFunction* fun)
+    {
+        allocsToPointsToMap[alloc] = cpts;
+        // Not sure if should consider the allocation a side effect of the
+        // function. Though if it is heap allocation and not just a local stack
+        // allocation, it would seem appropriate.
+        funToPointsToMap[fun].insert(cpts);
+        addModSideEffectOfFunction(fun,cpts);
+    }
     inline void addCPtsToLoad(PointsTo& cpts, const LoadPE *ld, const SVFFunction* fun)
     {
         loadsToPointsToMap[ld] = cpts;
@@ -456,6 +473,10 @@ public:
     inline MRSet& getStoreMRSet(const StorePE* store)
     {
         return storesToMRsMap[store];
+    }
+    inline MRSet& getAllocMRSet(const AddrPE* alloc)
+    {
+        return allocsToMRsMap[alloc];
     }
     inline bool hasRefMRSet(const CallBlockNode* cs)
     {

@@ -65,6 +65,7 @@ public:
     static const char* NumOfLoadMu;	///< Number of load mu
     static const char* NumOfStoreChi;	///< Number of store chi
     static const char* NumOfMSSAPhi;	///< Number of mssa phi
+    static const char* NumOfAllocUninit; ///< number of allocation of uninit memory.
 
     static const char* NumOfFunHasEntryChi;	///< Number of functions which have entry chi
     static const char* NumOfFunHasRetMu;	///< Number of functions which have return mu
@@ -72,6 +73,7 @@ public:
     static const char* NumOfCSHasMu;	///< Number of call sites which have mu
     static const char* NumOfLoadHasMu;	///< Number of loads which have mu
     static const char* NumOfStoreHasChi;	///< Number of stores which have chi
+    static const char* NumOfAllocHasChi;	///< Number of allocs which have chi
     static const char* NumOfBBHasMSSAPhi;	///< Number of basic blocks which have mssa phi
 
     MemSSAStat(MemSSA*);
@@ -188,6 +190,7 @@ private:
     int numOfAddr;
 
     int numOfMSSAPhi;	///< number of mssa phi svfg nodes.
+    int numOfAllocUninit; ///< number of allocation of uninit memory.
     int numOfPhi;
 
     int totalInEdge;	///< Total number of incoming SVFG edges

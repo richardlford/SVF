@@ -61,6 +61,9 @@ public:
         return false;
     }
 
+    /// Initialize analysis
+    void initialize(SVFModule* module);
+
     /// Report file/close bugs
     void reportBug(ProgSlice* slice);
 };

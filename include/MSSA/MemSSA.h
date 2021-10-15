@@ -57,6 +57,7 @@ public:
     typedef MSSACHI<Condition> CHI;
     typedef EntryCHI<Condition> ENTRYCHI;
     typedef StoreCHI<Condition> STORECHI;
+    typedef AllocCHI<Condition> ALLOCCHI;
     typedef CallCHI<Condition> CALLCHI;
     typedef MSSAPHI<Condition> PHI;
     typedef MSSADEF MDEF;
@@ -73,6 +74,7 @@ public:
     //@{
     typedef Map<const LoadPE*, MUSet> LoadToMUSetMap;
     typedef Map<const StorePE*, CHISet> StoreToChiSetMap;
+    typedef Map<const AddrPE*, CHISet> AllocToChiSetMap;
     typedef Map<const CallBlockNode*, MUSet> CallSiteToMUSetMap;
     typedef Map<const CallBlockNode*, CHISet> CallSiteToCHISetMap;
     typedef Map<const BasicBlock*, PHISet> BBToPhiSetMap;
@@ -129,6 +131,7 @@ protected:
 private:
     LoadToMUSetMap load2MuSetMap;
     StoreToChiSetMap store2ChiSetMap;
+    AllocToChiSetMap alloc2ChiSetMap;
     CallSiteToMUSetMap callsiteToMuSetMap;
     CallSiteToCHISetMap callsiteToChiSetMap;
     BBToPhiSetMap bb2PhiSetMap;
@@ -190,6 +193,11 @@ private:
         for (MRSet::iterator iter = mrSet.begin(), eiter = mrSet.end(); iter != eiter; ++iter)
             AddStoreCHI(bb,store,*iter);
     }
+    inline void AddAllocCHI(const BasicBlock* bb, const AddrPE* alloc, const MRSet& mrSet)
+    {
+        for (MRSet::iterator iter = mrSet.begin(), eiter = mrSet.end(); iter != eiter; ++iter)
+            AddAllocCHI(bb,alloc,*iter);
+    }
     inline void AddCallSiteMU(const CallBlockNode* cs,  const MRSet& mrSet)
     {
         for (MRSet::iterator iter = mrSet.begin(), eiter = mrSet.end(); iter != eiter; ++iter)
@@ -215,6 +223,15 @@ private:
     {
         STORECHI* chi = new STORECHI(bb,store, mr);
         store2ChiSetMap[store].insert(chi);
+        collectRegUses(mr);
+        collectRegDefs(bb,mr);
+    }
+    inline void AddAllocCHI(const BasicBlock* bb, const AddrPE* alloc, const MemRegion* mr)
+    {
+        ALLOCCHI* chi = new ALLOCCHI(bb,alloc, mr);
+        alloc2ChiSetMap[alloc].insert(chi);
+        // Strictly speaking, the alloc does not "use" the memory region, but we need
+        // to record so the stack and count of memory regions is initialized.
         collectRegUses(mr);
         collectRegDefs(bb,mr);
     }
@@ -396,6 +413,10 @@ public:
     {
         return store2ChiSetMap[st];
     }
+    inline CHISet& getCHISet(const AddrPE* alloc)
+    {
+        return alloc2ChiSetMap[alloc];
+    }
     inline MUSet& getMUSet(const CallBlockNode* cs)
     {
         return callsiteToMuSetMap[cs];
@@ -419,6 +440,10 @@ public:
     inline StoreToChiSetMap& getStoreToChiSetMap()
     {
         return store2ChiSetMap;
+    }
+    inline AllocToChiSetMap& getAllocToChiSetMap()
+    {
+        return alloc2ChiSetMap;
     }
     inline FunToReturnMuSetMap& getFunToRetMuSetMap()
     {
@@ -446,6 +471,7 @@ public:
     //@{
     u32_t getLoadMuNum() const;
     u32_t getStoreChiNum() const;
+    u32_t getAllocChiNum() const;
     u32_t getFunEntryChiNum() const;
     u32_t getFunRetMuNum() const;
     u32_t getCallSiteMuNum() const;
@@ -455,6 +481,11 @@ public:
 
     /// Print Memory SSA
     void dumpMSSA(raw_ostream & Out = SVFUtil::outs());
+
+    void dump()
+    {
+        dumpMSSA();
+    }
 };
 
 } // End namespace SVF

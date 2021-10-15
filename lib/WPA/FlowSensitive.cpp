@@ -193,6 +193,12 @@ bool FlowSensitive::processSVFGNode(SVFGNode* node)
         if(processStore(store))
             changed = true;
     }
+    else if(AllocUninitSVFGNode* alloc = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+    {
+        numOfProcessedAllocUninit++;
+        if(processAllocUninit(alloc))
+            changed = true;
+    }
     else if(PHISVFGNode* phi = SVFUtil::dyn_cast<PHISVFGNode>(node))
     {
         numOfProcessedPhi++;
@@ -576,6 +582,69 @@ bool FlowSensitive::processStore(const StoreSVFGNode* store)
     double updateEnd = stat->getClk();
     updateTime += (updateEnd - updateStart) / TIMEINTERVAL;
 
+    return changed;
+}
+
+/*!
+ * Process alloc node
+ *
+ * foreach node \in dst
+ * pts(node) = union pts(src)
+ */
+bool FlowSensitive::processAllocUninit(const AllocUninitSVFGNode* alloc)
+{
+    bool changed = false;
+#if 0
+    const PointsTo & dstPts = getPts(alloc->getPAGDstNodeID());
+
+    /// STORE statement can only be processed if the pointer on the LHS
+    /// points to something. If we handle STORE with an empty points-to
+    /// set, the OUT set will be updated from IN set. Then if LHS pointer
+    /// points-to one target and it has been identified as a strong
+    /// update, we can't remove those points-to information computed
+    /// before this strong update from the OUT set.
+    if (dstPts.empty())
+        return false;
+
+    double start = stat->getClk();
+
+    if(getPts(alloc->getPAGSrcNodeID()).empty() == false)
+    {
+        for (PointsTo::iterator it = dstPts.begin(), eit = dstPts.end(); it != eit; ++it)
+        {
+            NodeID ptd = *it;
+
+            if (pag->isConstantObj(ptd) || pag->isNonPointerObj(ptd))
+                continue;
+
+            if (unionPtsFromTop(alloc, alloc->getPAGSrcNodeID(), ptd))
+                changed = true;
+        }
+    }
+
+    double end = stat->getClk();
+    allocTime += (end - start) / TIMEINTERVAL;
+
+    double updateStart = stat->getClk();
+    // also merge the DFInSet to DFOutSet.
+    /// check if this is a strong updates alloc
+    NodeID singleton;
+    bool isSU = isStrongUpdate(alloc, singleton);
+    if (isSU)
+    {
+        svfgHasSU.set(alloc->getId());
+        if (strongUpdateOutFromIn(alloc, singleton))
+            changed = true;
+    }
+    else
+    {
+        svfgHasSU.reset(alloc->getId());
+        if (weakUpdateOutFromIn(alloc))
+            changed = true;
+    }
+    double updateEnd = stat->getClk();
+    updateTime += (updateEnd - updateStart) / TIMEINTERVAL;
+#endif
     return changed;
 }
 

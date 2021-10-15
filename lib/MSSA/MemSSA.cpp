@@ -128,7 +128,7 @@ void MemSSA::createMUCHI(const SVFFunction& fun)
           << "\n");
     // 1. create mu/chi
     //	insert a set of mus for memory regions at each load
-    //  inset a set of chis for memory regions at each store
+    //  inset a set of chis for memory regions at each store or allocation
 
     // 2. find global names (region name before renaming) of each memory region,
     // collect used mrs in usedRegs, and collect its def basic block in reg2BBMap
@@ -165,6 +165,8 @@ void MemSSA::createMUCHI(const SVFFunction& fun)
                         AddLoadMU(bb, load, mrGen->getLoadMRSet(load));
                     else if (const StorePE* store = SVFUtil::dyn_cast<StorePE>(inst))
                         AddStoreCHI(bb, store, mrGen->getStoreMRSet(store));
+                    else if (const AddrPE* alloc = SVFUtil::dyn_cast<AddrPE>(inst))
+                        AddAllocCHI(bb, alloc, mrGen->getAllocMRSet(alloc)); //HI
                 }
             }
             if (isNonInstricCallSite(inst))
@@ -309,6 +311,9 @@ void MemSSA::SSARenameBB(const BasicBlock& bb)
                 else if (const StorePE* store = SVFUtil::dyn_cast<StorePE>(inst))
                     RenameChiSet(getCHISet(store),memRegs);
 
+                else if (const AddrPE* alloc = SVFUtil::dyn_cast<AddrPE>(inst))
+                    RenameChiSet(getCHISet(alloc),memRegs);
+
             }
         }
         if (isNonInstricCallSite(inst))
@@ -392,6 +397,16 @@ void MemSSA::destroy()
 
     for (StoreToChiSetMap::iterator iter = store2ChiSetMap.begin(), eiter =
                 store2ChiSetMap.end(); iter != eiter; ++iter)
+    {
+        for (CHISet::iterator it = iter->second.begin(), eit =
+                    iter->second.end(); it != eit; ++it)
+        {
+            delete *it;
+        }
+    }
+
+    for (AllocToChiSetMap::iterator iter = alloc2ChiSetMap.begin(), eiter =
+                alloc2ChiSetMap.end(); iter != eiter; ++iter)
     {
         for (CHISet::iterator it = iter->second.begin(), eit =
                     iter->second.end(); it != eit; ++it)
@@ -491,6 +506,22 @@ u32_t MemSSA::getStoreChiNum() const
     u32_t num = 0;
     StoreToChiSetMap::const_iterator it = store2ChiSetMap.begin();
     StoreToChiSetMap::const_iterator eit = store2ChiSetMap.end();
+    for (; it != eit; it++)
+    {
+        const CHISet& chiSet = it->second;
+        num += chiSet.size();
+    }
+    return num;
+}
+
+/*!
+ * Get AllocCHI numbers
+ */
+u32_t MemSSA::getAllocChiNum() const
+{
+    u32_t num = 0;
+    AllocToChiSetMap::const_iterator it = alloc2ChiSetMap.begin();
+    AllocToChiSetMap::const_iterator eit = alloc2ChiSetMap.end();
     for (; it != eit; it++)
     {
         const CHISet& chiSet = it->second;

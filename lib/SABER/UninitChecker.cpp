@@ -28,9 +28,28 @@
  */
 
 #include "SABER/UninitChecker.h"
+#include "SVF-FE/PAGBuilder.h"
 
 using namespace SVF;
 using namespace SVFUtil;
+
+/// Initialize analysis
+void UninitChecker::initialize(SVFModule* module)
+{
+    PAGBuilder builder;
+    PAG* pag = builder.build(module);
+
+    AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
+    svfg =  memSSA.buildFullSVFGWithoutOPT(ander);
+    setGraph(memSSA.getSVFG());
+    ptaCallGraph = ander->getPTACallGraph();
+    //AndersenWaveDiff::releaseAndersenWaveDiff();
+    /// allocate control-flow graph branch conditions
+    getPathAllocator()->allocate(getPAG()->getModule());
+
+    initSrcs();
+    initSnks();
+}
 
 void UninitChecker::reportBug(ProgSlice* slice)
 {

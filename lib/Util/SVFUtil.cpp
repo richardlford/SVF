@@ -143,12 +143,17 @@ void SVFUtil::dumpAliasSet(unsigned node, NodeBS bs)
 /*!
  * Dump bit vector set
  */
-void SVFUtil::dumpSet(NodeBS bs, raw_ostream & O)
+void SVFUtil::dumpSet(const NodeBS bs, raw_ostream & O)
 {
+    bool first = true;
     for (NodeBS::iterator ii = bs.begin(), ie = bs.end();
             ii != ie; ii++)
     {
-        O << " " << *ii << " ";
+        if (!first) {
+            O << " ";
+        }
+        O << *ii;
+        first = false;
     }
 }
 

@@ -55,7 +55,7 @@ public:
     {
         Addr, Copy, Gep, Store, Load, Cmp, BinaryOp, UnaryOp, TPhi, TIntraPhi, TInterPhi,
         MPhi, MIntraPhi, MInterPhi, FRet, ARet, AParm, FParm,
-        FunRet, APIN, APOUT, FPIN, FPOUT, NPtr, DummyVProp
+        FunRet, APIN, APOUT, FPIN, FPOUT, NPtr, DummyVProp, AllocUninit
     };
 
     typedef VFGEdge::VFGEdgeSetTy::iterator iterator;
@@ -104,6 +104,11 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
+    void dump() const
+    {
+        SVFUtil::outs() << *this;
+    }
 
 protected:
     const ICFGNode* icfgNode;

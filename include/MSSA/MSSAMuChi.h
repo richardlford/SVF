@@ -326,7 +326,8 @@ public:
         StoreMSSACHI,
         CallMSSACHI,
         EntryMSSACHI,
-        SSAPHI
+        SSAPHI,
+        AllocMSSACHI
     };
 
 protected:
@@ -452,19 +453,22 @@ public:
  *  StoreCHI is annotated at each store instruction, representing a memory object is modified here
  */
 template<class Cond>
-class StoreCHI : public MSSACHI<Cond>
+class AllocCHI : public MSSACHI<Cond>
 {
 private:
     const BasicBlock* bb;
-    const StorePE* inst;
+
+    // This is the address edge representing the allocation of the object.
+    // The object is assumed to be uninitialized.
+    const AddrPE* inst;
 public:
-    /// Constructors for StoreCHI
+    /// Constructors for AllocCHI
     //@{
-    StoreCHI(const BasicBlock* b, const StorePE* i, const MemRegion* m, Cond c = true) :
-        MSSACHI<Cond>(MSSADEF::StoreMSSACHI,m,c), bb(b), inst(i)
+    AllocCHI(const BasicBlock* b, const AddrPE* i, const MemRegion* m, Cond c = true) :
+        MSSACHI<Cond>(MSSADEF::AllocMSSACHI,m,c), bb(b), inst(i)
     {
     }
-    virtual ~StoreCHI()
+    virtual ~AllocCHI()
     {
     }
     //@}
@@ -475,37 +479,95 @@ public:
         return bb;
     }
 
-    /// Get store instruction
-    inline const StorePE* getStoreInst() const
+    /// Get allocation instruction
+    inline const AddrPE* getAllocInst() const
     {
         return inst;
     }
 
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
-    static inline bool classof(const StoreCHI * chi)
+    static inline bool classof(const AllocCHI * chi)
     {
         return true;
     }
     static inline bool classof(const MSSACHI<Cond> * chi)
     {
-        return chi->getType() == MSSADEF::StoreMSSACHI;
+        return chi->getType() == MSSADEF::AllocMSSACHI;
     }
     static inline bool classof(const MSSADEF *chi)
     {
-        return chi->getType() == MSSADEF::StoreMSSACHI;
+        return chi->getType() == MSSADEF::AllocMSSACHI;
     }
     //@}
 
     /// Print CHI
     virtual void dump()
     {
+        // Note: An Allocation CHI does not depend on any prior memory value.
         SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                        " = STCHI(MR_" << this->getMR()->getMRID() << "V_" << this->getOpVer()->getSSAVersion() << ") \t" <<
-                        this->getMR()->dumpStr() << "\n";
+                        " = AllocCHI() \t" << this->getMR()->dumpStr() << "\n";
     }
 };
 
+/*!
+ *
+ *  StoreCHI is annotated at each store instruction, representing a memory object is modified here
+ */
+    template<class Cond>
+    class StoreCHI : public MSSACHI<Cond>
+    {
+    private:
+        const BasicBlock* bb;
+        const StorePE* inst;
+    public:
+        /// Constructors for StoreCHI
+        //@{
+        StoreCHI(const BasicBlock* b, const StorePE* i, const MemRegion* m, Cond c = true) :
+                MSSACHI<Cond>(MSSADEF::StoreMSSACHI,m,c), bb(b), inst(i)
+        {
+        }
+        virtual ~StoreCHI()
+        {
+        }
+        //@}
+
+        /// Get basic block
+        inline const BasicBlock* getBasicBlock() const
+        {
+            return bb;
+        }
+
+        /// Get store instruction
+        inline const StorePE* getStoreInst() const
+        {
+            return inst;
+        }
+
+        /// Methods for support type inquiry through isa, cast, and dyn_cast:
+        //@{
+        static inline bool classof(const StoreCHI * chi)
+        {
+            return true;
+        }
+        static inline bool classof(const MSSACHI<Cond> * chi)
+        {
+            return chi->getType() == MSSADEF::StoreMSSACHI;
+        }
+        static inline bool classof(const MSSADEF *chi)
+        {
+            return chi->getType() == MSSADEF::StoreMSSACHI;
+        }
+        //@}
+
+        /// Print CHI
+        virtual void dump()
+        {
+            SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
+                            " = STCHI(MR_" << this->getMR()->getMRID() << "V_" << this->getOpVer()->getSSAVersion() << ") \t" <<
+                            this->getMR()->dumpStr() << "\n";
+        }
+    };
 
 /*!
  *

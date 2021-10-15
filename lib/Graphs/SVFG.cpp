@@ -43,6 +43,17 @@ const std::string MRSVFGNode::toString() const {
     return rawstr.str();
 }
 
+const std::string AllocUninitSVFGNode::toString() const {
+    std::string str;
+    raw_string_ostream rawstr(str);
+    rawstr << "AllocUninitSVFGNode ID: " << getId() << " {fun: " << getFun()->getName() << "}";
+    rawstr << getAllocChi()->getMR()->getMRID() << "V_" << getAllocChi()->getResVer()->getSSAVersion() <<
+           " = AllocCHI(MR_" << getAllocChi()->getMR()->getMRID() << "V_" << getAllocChi()->getOpVer()->getSSAVersion() << ")\n";
+    rawstr << getAllocChi()->getMR()->dumpStr() << "\n";
+    rawstr << this->chi->getAllocInst()->toString();
+    return rawstr.str();
+}
+
 const std::string FormalINSVFGNode::toString() const {
     std::string str;
     raw_string_ostream rawstr(str);
@@ -246,6 +257,32 @@ void SVFG::addSVFGNodesForAddrTakenVars()
             setDef((*pi)->getResVer(),sNode);
     }
 
+    // set defs for address-taken vars uninitialized at allocation statements
+    PAGEdge::PAGEdgeSetTy& allocs = getPAGEdgeSet(PAGEdge::Addr);
+    for (PAGEdge::PAGEdgeSetTy::iterator iter = allocs.begin(), eiter =
+                allocs.end(); iter != eiter; ++iter)
+    {
+        AddrPE* alloc = SVFUtil::cast<AddrPE>(*iter);
+        const llvm::Value* val = alloc->getValue();
+        if (!SVFUtil::isa<llvm::Instruction>(val)) {
+            outs() << "AddrPE not an instruction:" << *val << "\n";
+            continue;
+        }
+
+
+        // I think we only expect one CHI per alloc.
+        ALLOCCHI* allocchi = nullptr;
+        for(CHISet::iterator pit = mssa->getCHISet(alloc).begin(), epit = mssa->getCHISet(alloc).end(); pit!=epit; ++pit)
+        {
+            assert(allocchi == nullptr && "More than one chi per alloc");
+            CHI* chi = *pit;
+            allocchi = (ALLOCCHI*)(chi);
+        }
+        if (allocchi != nullptr) {
+            this->addAllocUninitSVFGNode(allocchi);
+        }
+    }
+
     /// set defs for address-taken vars defined at phi/chi/call
     /// create corresponding def and use nodes for address-taken vars (a.k.a MRVers)
     /// initialize memory SSA phi nodes (phi of address-taken variables)
@@ -320,6 +357,10 @@ void SVFG::connectIndirectSVFGEdges()
                     addIntraIndirectVFEdge(def,nodeId, chi->getOpVer()->getMR()->getPointsTo());
                 }
             }
+        }
+        else if(const AllocUninitSVFGNode* alloc = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+        {
+	  // Not sure what is needed here.
         }
         else if(const FormalINSVFGNode* formalIn = SVFUtil::dyn_cast<FormalINSVFGNode>(node))
         {
@@ -817,6 +858,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
         {
             rawstr << fi->toString();
         }
+        else if(AllocUninitSVFGNode* fi = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+        {
+            rawstr << fi->toString();
+        }
         else if(FormalOUTSVFGNode* fo = SVFUtil::dyn_cast<FormalOUTSVFGNode>(node))
         {
             rawstr << fo->toString();
@@ -886,6 +931,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
             rawstr << tphi->toString();
         }
         else if(FormalINSVFGNode* fi = SVFUtil::dyn_cast<FormalINSVFGNode>(node))
+        {
+            rawstr	<< fi->toString();
+        }
+        else if(AllocUninitSVFGNode* fi = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
         {
             rawstr	<< fi->toString();
         }
@@ -980,6 +1029,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
         else if(SVFUtil::isa<FormalINSVFGNode>(node))
         {
             rawstr <<  "color=yellow,penwidth=2";
+        }
+        else if(SVFUtil::isa<AllocUninitSVFGNode>(node))
+        {
+            rawstr <<  "color=chocolate,penwidth=3";
         }
         else if(SVFUtil::isa<FormalOUTSVFGNode>(node))
         {

@@ -39,6 +39,12 @@ using namespace SVFUtil;
 Size_t MemRegion::totalMRNum = 0;
 Size_t MRVer::totalVERNum = 0;
 
+void MemRegion::dump() const
+{
+    outs() << "{MemoryRegion rid=" << this->rid << ", pts=";
+    SVFUtil::dumpSet(this->cptsSet);
+    outs() << "}\n";
+}
 
 /*!
  * Clean up memory
@@ -180,6 +186,21 @@ void MRGenerator::collectModRefForLoadStore()
                             continue;
                         assert(!cpts.empty() && "null pointer!!");
                         addCPtsToStore(cpts, st, &fun);
+                    }
+
+                    else if (const AddrPE *alloc = SVFUtil::dyn_cast<AddrPE>(inst))
+                    {
+                        NodeID srcId = alloc->getSrcID();
+                        PointsTo cpts(pta->getPts(srcId));
+                        // TODO: change this assertion check later when we have conditional points-to set
+                        if (cpts.empty()) {
+                            // When we make the symbols, if a call is to an allocating function
+                            // we make an object for it. That object is the srcId, and the alloc
+                            // definitely point to it.
+                            cpts.set(srcId);
+                        }
+                        assert(!cpts.empty() && "null pointer!!");
+                        addCPtsToAlloc(cpts, alloc, &fun);
                     }
 
                     else if (const LoadPE *ld = SVFUtil::dyn_cast<LoadPE>(inst))
@@ -334,6 +355,19 @@ void MRGenerator::updateAliasMRs()
         for(MRSet::iterator ait = aliasMRs.begin(), eait = aliasMRs.end(); ait!=eait; ++ait)
         {
             storesToMRsMap[it->first].insert(*ait);
+        }
+    }
+
+    /// update allocs with its aliased regions
+    for(AllocsToPointsToMap::const_iterator it = allocsToPointsToMap.begin(), eit = allocsToPointsToMap.end(); it!=eit; ++it)
+    {
+        MRSet aliasMRs;
+        const SVFFunction* fun = getFunction(it->first);
+        const PointsTo& allocCPts = it->second;
+        getAliasMemRegions(aliasMRs,allocCPts,fun);
+        for(MRSet::iterator ait = aliasMRs.begin(), eait = aliasMRs.end(); ait!=eait; ++ait)
+        {
+            allocsToMRsMap[it->first].insert(*ait);
         }
     }
 

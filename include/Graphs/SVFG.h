@@ -90,6 +90,7 @@ public:
     typedef MemSSA::CHI CHI;
     typedef MemSSA::LOADMU LOADMU;
     typedef MemSSA::STORECHI STORECHI;
+    typedef MemSSA::ALLOCCHI ALLOCCHI;
     typedef MemSSA::RETMU RETMU;
     typedef MemSSA::ENTRYCHI ENTRYCHI;
     typedef MemSSA::CALLCHI CALLCHI;
@@ -401,6 +402,16 @@ protected:
         setDef(chi->getResVer(),sNode);
         funToFormalINMap[chi->getFunction()].set(sNode->getId());
     }
+    /// Add memory Function alloc chi SVFG node
+    inline void addAllocUninitSVFGNode(const MemSSA::ALLOCCHI* chi)
+    {
+        auto icfg_node = chi->getAllocInst()->getICFGNode();
+        AllocUninitSVFGNode* sNode = new AllocUninitSVFGNode(totalVFGNode++, chi);
+        addSVFGNode(sNode, icfg_node);
+        setDef(chi->getResVer(), sNode);
+        // funToAllocUninitMap[chi->getFunction()].set(sNode->getId());
+    }
+
     /// Add memory Function return mu SVFG node
     inline void addFormalOUTSVFGNode(const MemSSA::RETMU* mu)
     {

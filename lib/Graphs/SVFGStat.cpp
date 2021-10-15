@@ -56,6 +56,7 @@ const char* MemSSAStat::NumOfCSHasChi = "CSHasChi";	///< Number of call sites wh
 const char* MemSSAStat::NumOfCSHasMu = "CSHasMu";	///< Number of call sites which have mu
 const char* MemSSAStat::NumOfLoadHasMu = "LoadHasMu";	///< Number of loads which have mu
 const char* MemSSAStat::NumOfStoreHasChi = "StoreHasChi";	///< Number of stores which have chi
+const char* MemSSAStat::NumOfAllocHasChi = "AllocHasChi";	///< Number of allocs which have chi
 const char* MemSSAStat::NumOfBBHasMSSAPhi = "BBHasMSSAPhi";	///< Number of basic blocks which have mssa phi
 
 /*!
@@ -115,6 +116,7 @@ void MemSSAStat::performStat()
     PTNumStatMap[NumOfCSHasMu] = mssa->getCallSiteToMuSetMap().size();
     PTNumStatMap[NumOfLoadHasMu] = mssa->getLoadToMUSetMap().size();
     PTNumStatMap[NumOfStoreHasChi] = mssa->getStoreToChiSetMap().size();
+    PTNumStatMap[NumOfAllocHasChi] = mssa->getAllocToChiSetMap().size();
     PTNumStatMap[NumOfBBHasMSSAPhi] = mssa->getBBToPhiSetMap().size();
 
     printStat();
@@ -282,6 +284,8 @@ void SVFGStat::processGraph()
             numOfPhi++;
         else if (SVFUtil::isa<MSSAPHISVFGNode>(it->second))
             numOfMSSAPhi++;
+        else if (SVFUtil::isa<AllocUninitSVFGNode>(it->second))
+            numOfAllocUninit++;
 
         SVFGNode* node = it->second;
         calculateNodeDegrees(node, nodeHasIndInEdge, nodeHasIndOutEdge);
