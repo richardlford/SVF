@@ -60,6 +60,11 @@ int main(int argc, char ** argv)
     cl::ParseCommandLineOptions(arg_num, arg_value,
                                 "Source-Sink Bug Detector\n");
 
+    if (Options::WriteAnder == "ir_annotator")
+    {
+        LLVMModuleSet::getLLVMModuleSet()->preProcessBCs(moduleNameVec);
+    }
+
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
     svfModule->buildSymbolTableInfo();
 
