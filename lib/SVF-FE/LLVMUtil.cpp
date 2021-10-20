@@ -360,7 +360,8 @@ bool SVFUtil::isIRFile(const std::string &filename)
     const unsigned char *bufferEnd =
         (const unsigned char *)Buffer.getBufferEnd();
     return llvm::isBitcode(bufferStart, bufferEnd) ? true :
-           Buffer.getBuffer().startswith("; ModuleID =");
+           Buffer.getBuffer().startswith("; ModuleID =")
+           || Buffer.getBuffer().startswith("source_filename");
 }
 
 

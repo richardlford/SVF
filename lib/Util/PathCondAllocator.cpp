@@ -481,7 +481,8 @@ PathCondAllocator::Condition* PathCondAllocator::ComputeIntraVFGGuard(const Basi
                 brCond = getEvalBrCond(bb, succ);
 
             DBOUT(DSaber, outs() << " bb (" << bb->getName() <<
-                  ") --> " << "succ_bb (" << succ->getName() << ") condition: " << brCond << "\n");
+                  ") --> " << "succ_bb (" << succ->getName()
+                  << ") condition: " << dumpCond(brCond) << brCond << "\n");
             Condition* succPathCond = condAnd(cond, brCond);
             if(setCFCond(succ, condOr(getCFCond(succ), succPathCond)))
                 worklist.push(succ);
@@ -489,7 +490,8 @@ PathCondAllocator::Condition* PathCondAllocator::ComputeIntraVFGGuard(const Basi
     }
 
     DBOUT(DSaber, outs() << " src_bb (" << srcBB->getName() <<
-          ") --> " << "dst_bb (" << dstBB->getName() << ") condition: " << getCFCond(dstBB) << "\n");
+          ") --> " << "dst_bb (" << dstBB->getName() << ") condition: "
+          << dumpCond(getCFCond(dstBB)) << getCFCond(dstBB)<< "\n");
 
     return getCFCond(dstBB);
 }

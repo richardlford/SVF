@@ -59,7 +59,6 @@ public:
     typedef ProgSlice::VFWorkList WorkList;
 
 private:
-    ProgSlice* _curSlice;		/// current program slice
     SVFGNodeSet sources;		/// source nodes
     SVFGNodeSet sinks;		/// source nodes
     PathCondAllocator* pathCondAllocator;
@@ -67,6 +66,7 @@ private:
     SVFGNodeSet visitedSet;	///<  record backward visited nodes
 
 protected:
+    ProgSlice* _curSlice;		/// current program slice
     SaberSVFGBuilder memSSA;
     SVFG* svfg;
     PTACallGraph* ptaCallGraph;
@@ -236,7 +236,7 @@ public:
 
 protected:
     /// Forward traverse
-    virtual inline void FWProcessCurNode(const DPIm& item)
+    inline bool FWProcessCurNode(const DPIm& item) override
     {
         const SVFGNode* node = getNode(item.getCurNodeID());
         if(isSink(node))
@@ -246,15 +246,17 @@ protected:
         }
         else
             addToCurForwardSlice(node);
+        return false;
     }
     /// Backward traverse
-    virtual inline void BWProcessCurNode(const DPIm& item)
+    inline bool BWProcessCurNode(const DPIm& item) override
     {
         const SVFGNode* node = getNode(item.getCurNodeID());
         if(isInCurForwardSlice(node))
         {
             addToCurBackwardSlice(node);
         }
+        return false;
     }
     /// Propagate information forward by matching context
     virtual void FWProcessOutgoingEdge(const DPIm& item, SVFGEdge* edge);

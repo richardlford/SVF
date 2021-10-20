@@ -265,7 +265,9 @@ void SVFG::addSVFGNodesForAddrTakenVars()
         AddrPE* alloc = SVFUtil::cast<AddrPE>(*iter);
         const llvm::Value* val = alloc->getValue();
         if (!SVFUtil::isa<llvm::Instruction>(val)) {
-            outs() << "AddrPE not an instruction:" << *val << "\n";
+            if (!isConstantData(val) && !SVFUtil::isa<llvm::GlobalValue>(val)) {
+                outs() << "AddrPE value is unexpected type:" << *val << "\n";
+            }
             continue;
         }
 

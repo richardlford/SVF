@@ -70,6 +70,11 @@ public:
 
     virtual bool isSink(const SVFGNode* node) const override;
 
+    /// Forward traverse
+    inline bool FWProcessCurNode(const DPIm& item) override;
+    /// Backward traverse
+    inline bool BWProcessCurNode(const DPIm& item) override;
+
     /// Report file/close bugs
     void reportBug(ProgSlice* slice);
 };

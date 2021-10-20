@@ -72,22 +72,57 @@ void UninitChecker::initSnks()
 }
 
 bool UninitChecker::isSink(const SVFGNode* node) const {
-    return !isa<StoreSVFGNode>(node);
+    return !isa<StoreSVFGNode>(node) && !isa<AllocUninitSVFGNode>(node);
 }
 void UninitChecker::reportBug(ProgSlice* slice)
 {
-
-    if(!slice->isSatisfiableForPairs())
+    const SVFGNode* src = slice->getSource();
+    const auto* aunode = cast<AllocUninitSVFGNode>(src);
+    int num_sinks = slice->getSinks().size();
+    if (num_sinks > 0)
     {
-        const SVFGNode* src = slice->getSource();
-        if (const AllocUninitSVFGNode* aunode = dyn_cast<AllocUninitSVFGNode>(src))
+        const llvm::Value* val = aunode->getValue();
+        const MemSSA::ALLOCCHI* mychi = aunode->getAllocChi();
+        const BasicBlock* bb = mychi->getBasicBlock();
+        const llvm::Function* fun = bb->getParent();
+
+        SVFUtil::errs() << bugMsg2("\t Uninitialized :")
+                        <<  " variable use in function " << fun->getName() << " at : ("
+                        << getSourceLoc(val) << ")\n";
+        SVFUtil::errs() << "\t\tAssociated value is " << *val << "\n";
+        SVFUtil::errs() << "\t\t uninitialized path: \n" << slice->evalFinalCond() << "\n";
+        SVFUtil::errs() << "\t\t Users of value:\n";
+        int user_num = 0;
+        for(auto node : slice->getSinks())
         {
-            const llvm::Value* val = aunode->getValue();
-            SVFUtil::errs() << bugMsg2("\t Uninitialized :") <<  " variable use at : ("
-                            << getSourceLoc(val) << ")\n";
-            SVFUtil::errs() << "\t\t uninitialized path: \n" << slice->evalFinalCond() << "\n";
-            slice->annotatePaths();
+            user_num++;
+            llvm::errs() << "\t\t\tUser#" << user_num << ": " << *node << "\n";
         }
     }
+}
+
+/// Return true to skip following.
+bool UninitChecker::FWProcessCurNode(const SrcSnkDDA::DPIm &item) {
+    const SVFGNode* node = getNode(item.getCurNodeID());
+    if(isSink(node))
+    {
+        addSinkToCurSlice(node);
+        _curSlice->setPartialReachable();
+        return true;
+    }
+    else
+        addToCurForwardSlice(node);
+    // We only keep following if it is an AllocUninitSVFGNode,
+    // If not, it is a store and we want to stop.
+    return !SVFUtil::isa<AllocUninitSVFGNode>(node);
+}
+
+bool UninitChecker::BWProcessCurNode(const SrcSnkDDA::DPIm &item) {
+    const SVFGNode* node = getNode(item.getCurNodeID());
+    if(isInCurForwardSlice(node))
+    {
+        addToCurBackwardSlice(node);
+    }
+    return false;
 }
 

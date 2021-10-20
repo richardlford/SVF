@@ -64,22 +64,24 @@ void SrcSnkDDA::analyze(SVFModule* module)
     for (SVFGNodeSetIter iter = sourcesBegin(), eiter = sourcesEnd();
             iter != eiter; ++iter)
     {
-        setCurSlice(*iter);
+        const SVFGNode* node = *iter;
+        NodeID id = node->getId();
+        setCurSlice(node);
 
-        DBOUT(DGENERAL, outs() << "Analysing slice:" << (*iter)->getId() << ")\n");
+        DBOUT(DGENERAL, outs() << "Analysing slice:" << id << ")\n");
         ContextCond cxt;
-        DPIm item((*iter)->getId(),cxt);
+        DPIm item(id,cxt);
         forwardTraverse(item);
 
         /// do not consider there is bug when reaching a global SVFGNode
         /// if we touch a global, then we assume the client uses this memory until the program exits.
         if (getCurSlice()->isReachGlobal())
         {
-            DBOUT(DSaber, outs() << "Forward analysis reaches globals for slice:" << (*iter)->getId() << ")\n");
+            DBOUT(DSaber, outs() << "Forward analysis reaches globals for slice:" << id << ")\n");
         }
         else
         {
-            DBOUT(DSaber, outs() << "Forward process for slice:" << (*iter)->getId() << " (size = " << getCurSlice()->getForwardSliceSize() << ")\n");
+            DBOUT(DSaber, outs() << "Forward process for slice:" << id << " (size = " << getCurSlice()->getForwardSliceSize() << ")\n");
 
             for (SVFGNodeSetIter sit = getCurSlice()->sinksBegin(), esit =
                         getCurSlice()->sinksEnd(); sit != esit; ++sit)
@@ -89,7 +91,7 @@ void SrcSnkDDA::analyze(SVFModule* module)
                 backwardTraverse(item);
             }
 
-            DBOUT(DSaber, outs() << "Backward process for slice:" << (*iter)->getId() << " (size = " << getCurSlice()->getBackwardSliceSize() << ")\n");
+            DBOUT(DSaber, outs() << "Backward process for slice:" << id << " (size = " << getCurSlice()->getBackwardSliceSize() << ")\n");
 
             if(Options::DumpSlice)
                 annotateSlice(_curSlice);
@@ -97,7 +99,7 @@ void SrcSnkDDA::analyze(SVFModule* module)
             if(_curSlice->AllPathReachableSolve()== true)
                 _curSlice->setAllReachable();
 
-            DBOUT(DSaber, outs() << "Guard computation for slice:" << (*iter)->getId() << ")\n");
+            DBOUT(DSaber, outs() << "Guard computation for slice:" << id << ")\n");
         }
 
         reportBug(getCurSlice());

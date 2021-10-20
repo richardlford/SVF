@@ -97,7 +97,10 @@ protected:
         while (!isWorklistEmpty())
         {
             DPIm item = popFromWorklist();
-            FWProcessCurNode(item);
+            bool skip = FWProcessCurNode(item);
+            if (skip) {
+                continue;
+            }
 
             GNODE* v = getNode(getNodeIDFromItem(item));
             child_iterator EI = GTraits::child_begin(v);
@@ -116,7 +119,10 @@ protected:
         while (!isWorklistEmpty())
         {
             DPIm item = popFromWorklist();
-            BWProcessCurNode(item);
+            bool skip = BWProcessCurNode(item);
+            if (skip) {
+                continue;
+            }
 
             GNODE* v = getNode(getNodeIDFromItem(item));
             inv_child_iterator EI = InvGTraits::child_begin(v);
@@ -129,11 +135,15 @@ protected:
     }
     /// Process the DP item
     //@{
-    virtual void FWProcessCurNode(const DPIm&)
+    /// Return true if should stop following.
+    virtual bool FWProcessCurNode(const DPIm&)
     {
+        return false;
     }
-    virtual void BWProcessCurNode(const DPIm&)
+    /// Return true if should stop following.
+    virtual bool BWProcessCurNode(const DPIm&)
     {
+        return false;
     }
     //@}
     /// Propagation for the solving, to be implemented in the child class
