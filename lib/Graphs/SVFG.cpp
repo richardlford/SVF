@@ -337,9 +337,9 @@ void SVFG::connectIndirectSVFGEdges()
         if(const LoadSVFGNode* loadNode = SVFUtil::dyn_cast<LoadSVFGNode>(node))
         {
             MUSet& muSet = mssa->getMUSet(SVFUtil::cast<LoadPE>(loadNode->getPAGEdge()));
-            for(MUSet::iterator it = muSet.begin(), eit = muSet.end(); it!=eit; ++it)
+            for(MUSet::iterator it2 = muSet.begin(), eit2 = muSet.end(); it2 != eit2; ++it2)
             {
-                if(LOADMU* mu = SVFUtil::dyn_cast<LOADMU>(*it))
+                if(LOADMU* mu = SVFUtil::dyn_cast<LOADMU>(*it2))
                 {
                     NodeID def = getDef(mu->getVer());
                     addIntraIndirectVFEdge(def,nodeId, mu->getVer()->getMR()->getPointsTo());
@@ -349,9 +349,9 @@ void SVFG::connectIndirectSVFGEdges()
         else if(const StoreSVFGNode* storeNode = SVFUtil::dyn_cast<StoreSVFGNode>(node))
         {
             CHISet& chiSet = mssa->getCHISet(SVFUtil::cast<StorePE>(storeNode->getPAGEdge()));
-            for(CHISet::iterator it = chiSet.begin(), eit = chiSet.end(); it!=eit; ++it)
+            for(CHISet::iterator it2 = chiSet.begin(), eit2 = chiSet.end(); it2 != eit2; ++it2)
             {
-                if(STORECHI* chi = SVFUtil::dyn_cast<STORECHI>(*it))
+                if(STORECHI* chi = SVFUtil::dyn_cast<STORECHI>(*it2))
                 {
                     NodeID def = getDef(chi->getOpVer());
                     addIntraIndirectVFEdge(def,nodeId, chi->getOpVer()->getMR()->getPointsTo());
@@ -366,9 +366,9 @@ void SVFG::connectIndirectSVFGEdges()
         {
             PTACallGraphEdge::CallInstSet callInstSet;
             mssa->getPTA()->getPTACallGraph()->getDirCallSitesInvokingCallee(formalIn->getEntryChi()->getFunction(),callInstSet);
-            for(PTACallGraphEdge::CallInstSet::iterator it = callInstSet.begin(), eit = callInstSet.end(); it!=eit; ++it)
+            for(PTACallGraphEdge::CallInstSet::iterator it2 = callInstSet.begin(), eit2 = callInstSet.end(); it2 != eit2; ++it2)
             {
-                const CallBlockNode* cs = *it;
+                const CallBlockNode* cs = *it2;
                 if(!mssa->hasMU(cs))
                     continue;
                 ActualINSVFGNodeSet& actualIns = getActualINSVFGNodes(cs);
@@ -384,9 +384,9 @@ void SVFG::connectIndirectSVFGEdges()
             PTACallGraphEdge::CallInstSet callInstSet;
             const MemSSA::RETMU* retMu = formalOut->getRetMU();
             mssa->getPTA()->getPTACallGraph()->getDirCallSitesInvokingCallee(retMu->getFunction(),callInstSet);
-            for(PTACallGraphEdge::CallInstSet::iterator it = callInstSet.begin(), eit = callInstSet.end(); it!=eit; ++it)
+            for(PTACallGraphEdge::CallInstSet::iterator it2 = callInstSet.begin(), eit2 = callInstSet.end(); it2 != eit2; ++it2)
             {
-                const CallBlockNode* cs = *it;
+                const CallBlockNode* cs = *it2;
                 if(!mssa->hasCHI(cs))
                     continue;
                 ActualOUTSVFGNodeSet& actualOuts = getActualOUTSVFGNodes(cs);
@@ -411,10 +411,10 @@ void SVFG::connectIndirectSVFGEdges()
         }
         else if(const MSSAPHISVFGNode* phiNode = SVFUtil::dyn_cast<MSSAPHISVFGNode>(node))
         {
-            for (MemSSA::PHI::OPVers::const_iterator it = phiNode->opVerBegin(), eit = phiNode->opVerEnd();
-                    it != eit; it++)
+            for (MemSSA::PHI::OPVers::const_iterator it2 = phiNode->opVerBegin(), eit2 = phiNode->opVerEnd();
+                 it2 != eit2; it2++)
             {
-                const MRVer* op = it->second;
+                const MRVer* op = it2->second;
                 NodeID def = getDef(op);
                 addIntraIndirectVFEdge(def,nodeId, op->getMR()->getPointsTo());
             }
@@ -858,9 +858,9 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
         {
             rawstr << fi->toString();
         }
-        else if(AllocUninitSVFGNode* fi = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+        else if(AllocUninitSVFGNode* fi2 = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
         {
-            rawstr << fi->toString();
+            rawstr << fi2->toString();
         }
         else if(FormalOUTSVFGNode* fo = SVFUtil::dyn_cast<FormalOUTSVFGNode>(node))
         {
@@ -934,9 +934,9 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<PAG*>
         {
             rawstr	<< fi->toString();
         }
-        else if(AllocUninitSVFGNode* fi = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+        else if(AllocUninitSVFGNode* fi2 = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
         {
-            rawstr	<< fi->toString();
+            rawstr << fi2->toString();
         }
         else if(FormalOUTSVFGNode* fo = SVFUtil::dyn_cast<FormalOUTSVFGNode>(node))
         {

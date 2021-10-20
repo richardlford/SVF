@@ -181,6 +181,11 @@ const Value* ProgSlice::getLLVMValue(const SVFGNode* node) const
     {
         return fr->getRet()->getValue();
     }
+    else if (const AllocUninitSVFGNode* aunode = SVFUtil::dyn_cast<AllocUninitSVFGNode>(node))
+    {
+        return aunode->getValue();
+    }
+
 
     return nullptr;
 }

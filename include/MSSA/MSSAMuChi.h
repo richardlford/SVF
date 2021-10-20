@@ -71,6 +71,18 @@ public:
         return version;
     }
 
+    static std::string getSSAVersionStr(const MRVer* mr)
+    {
+        if (mr == nullptr){
+            return "NotSet";
+        }
+        auto ver = mr->getSSAVersion();
+        std::string result = "";
+        llvm::raw_string_ostream stream(result);
+        stream << ver;
+        return stream.str();
+    }
+
     /// Get MSSADef
     inline MSSADef* getDef() const
     {
@@ -133,6 +145,12 @@ public:
         assert(ver!=nullptr && "version is nullptr, did not rename?");
         return ver;
     }
+    /// Get version for use in dumping in a partial state, when it might be null.
+    inline MRVer* getVerDbg() const
+    {
+        return ver;
+    }
+
     /// Return condition
     inline Cond getCond() const
     {
@@ -147,8 +165,9 @@ public:
     /// Print MU
     virtual void dump()
     {
-        SVFUtil::outs() << "MU(MR_" << mr->getMRID() << "V_" << ver->getSSAVersion() << ") \t" <<
-                        this->getMR()->dumpStr() << "\n";
+        SVFUtil::outs() << "MU(MR_" << mr->getMRID()
+        << "V_" << MRVer::getSSAVersionStr(this->getVerDbg()) << ") \t"
+        << this->getMR()->dumpStr() << "\n";
     }
 };
 
@@ -203,8 +222,9 @@ public:
     /// Print MU
     virtual void dump()
     {
-        SVFUtil::outs() << "LDMU(MR_" << this->getMR()->getMRID() << "V_" << this->getVer()->getSSAVersion() << ") \t" <<
-                        this->getMR()->dumpStr() << "\n";
+        SVFUtil::outs() << "LDMU(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->getVerDbg()) << ") \t"
+                        << this->getMR()->dumpStr() << "\n";
     }
 };
 
@@ -258,8 +278,9 @@ public:
     /// Print MU
     virtual void dump()
     {
-        SVFUtil::outs() << "CALMU(MR_" << this->getMR()->getMRID() << "V_" << this->getVer()->getSSAVersion() << ") \t" <<
-                        this->getMR()->dumpStr() << "\n";
+        SVFUtil::outs() << "CALMU(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->getVerDbg()) << ") \t"
+                        << this->getMR()->dumpStr() << "\n";
     }
 };
 
@@ -303,8 +324,9 @@ public:
     /// Print MU
     virtual void dump()
     {
-        SVFUtil::outs() << "RETMU(MR_" << this->getMR()->getMRID() << "V_" << this->getVer()->getSSAVersion() << ") \t" <<
-                        this->getMR()->dumpStr() << "\n";
+        SVFUtil::outs() << "RETMU(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->getVerDbg()) << ") \t"
+                        << this->getMR()->dumpStr() << "\n";
     }
 };
 
@@ -380,7 +402,7 @@ public:
     /// Print MSSADef
     virtual void dump()
     {
-        SVFUtil::outs() << "DEF(MR_" << mr->getMRID() << "V_" << resVer->getSSAVersion() << ")\n";
+        SVFUtil::outs() << "DEF(MR_" << mr->getMRID() << "V_" << MRVer::getSSAVersionStr(resVer) << ")\n";
     }
 };
 
@@ -390,9 +412,9 @@ public:
 template<class Cond>
 class MSSACHI : public MSSADEF
 {
-
-private:
+protected:
     MRVer* opVer;
+private:
     Cond cond;
 public:
     typedef typename MSSADEF::DEFTYPE CHITYPE;
@@ -442,8 +464,10 @@ public:
     /// Print CHI
     virtual void dump()
     {
-        SVFUtil::outs() << "MR_" << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                        " = CHI(MR_" << this->getMR()->getMRID() << "V_" << opVer->getSSAVersion() << ") \t" <<
+        SVFUtil::outs() << "MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->resVer) <<
+                        " = CHI(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(opVer) << ") \t" <<
                         this->getMR()->dumpStr() << "\n";
     }
 };
@@ -505,8 +529,9 @@ public:
     virtual void dump()
     {
         // Note: An Allocation CHI does not depend on any prior memory value.
-        SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                        " = AllocCHI() \t" << this->getMR()->dumpStr() << "\n";
+        SVFUtil::outs() << this->getMR()->getMRID()
+            << "V_" << MRVer::getSSAVersionStr(this->resVer)
+            << " = AllocCHI() \t" << this->getMR()->dumpStr() << "\n";
     }
 };
 
@@ -563,8 +588,10 @@ public:
         /// Print CHI
         virtual void dump()
         {
-            SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                            " = STCHI(MR_" << this->getMR()->getMRID() << "V_" << this->getOpVer()->getSSAVersion() << ") \t" <<
+            SVFUtil::outs() << this->getMR()->getMRID()
+                            << "V_" << MRVer::getSSAVersionStr(this->resVer) <<
+                            " = STCHI(MR_" << this->getMR()->getMRID()
+                            << "V_" << MRVer::getSSAVersionStr(this->opVer) << ") \t" <<
                             this->getMR()->dumpStr() << "\n";
         }
     };
@@ -621,8 +648,10 @@ public:
     /// Print CHI
     virtual void dump()
     {
-        SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                        " = CALCHI(MR_" << this->getMR()->getMRID() << "V_" << this->getOpVer()->getSSAVersion() << ") \t" <<
+        SVFUtil::outs() << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->resVer) <<
+                        " = CALCHI(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->opVer) << ") \t" <<
                         this->getMR()->dumpStr() << "\n";
     }
 };
@@ -672,8 +701,10 @@ public:
     /// Print CHI
     virtual void dump()
     {
-        SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
-                        " = ENCHI(MR_" << this->getMR()->getMRID() << "V_" << this->getOpVer()->getSSAVersion() << ") \t" <<
+        SVFUtil::outs() << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->resVer) <<
+                        " = ENCHI(MR_" << this->getMR()->getMRID()
+                        << "V_" << MRVer::getSSAVersionStr(this->opVer) << ") \t" <<
                         this->getMR()->dumpStr() << "\n";
     }
 };
@@ -763,7 +794,8 @@ public:
     /// Print PHI
     virtual void dump()
     {
-        SVFUtil::outs() << this->getMR()->getMRID() << "V_" << this->getResVer()->getSSAVersion() <<
+        SVFUtil::outs() << this->getMR()->getMRID() << "V_"
+                        << MRVer::getSSAVersionStr(this->resVer) <<
                         " = PHI(";
         for(OPVers::iterator it = opVers.begin(), eit = opVers.end(); it!=eit; ++it)
             SVFUtil::outs() << "MR_" << this->getMR()->getMRID() << "V_" << it->second->getSSAVersion() << ", ";

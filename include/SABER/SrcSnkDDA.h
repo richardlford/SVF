@@ -177,11 +177,11 @@ public:
         return false;
     }
 
-    bool isSource(const SVFGNode* node) const {
+    virtual bool isSource(const SVFGNode* node) const {
         return getSources().find(node)!=getSources().end();
     }
 
-    bool isSink(const SVFGNode* node) const {
+    virtual bool isSink(const SVFGNode* node) const {
         return getSinks().find(node)!=getSinks().end();
     }
     ///@}

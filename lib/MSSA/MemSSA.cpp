@@ -169,7 +169,8 @@ void MemSSA::createMUCHI(const SVFFunction& fun)
                         AddAllocCHI(bb, alloc, mrGen->getAllocMRSet(alloc)); //HI
                 }
             }
-            if (isNonInstricCallSite(inst))
+            bool isAppCall = isNonInstricCallSite(inst) && !isExtCall(inst);
+            if (isAppCall)
             {
                 const CallBlockNode* cs = pag->getICFG()->getCallBlockNode(inst);
                 if(mrGen->hasRefMRSet(cs))
@@ -304,14 +305,14 @@ void MemSSA::SSARenameBB(const BasicBlock& bb)
             for(PAGEdgeList::const_iterator bit = pagEdgeList.begin(), ebit= pagEdgeList.end();
                     bit!=ebit; ++bit)
             {
-                const PAGEdge* inst = *bit;
-                if (const LoadPE* load = SVFUtil::dyn_cast<LoadPE>(inst))
+                const PAGEdge* instEdge = *bit;
+                if (const LoadPE* load = SVFUtil::dyn_cast<LoadPE>(instEdge))
                     RenameMuSet(getMUSet(load));
 
-                else if (const StorePE* store = SVFUtil::dyn_cast<StorePE>(inst))
+                else if (const StorePE* store = SVFUtil::dyn_cast<StorePE>(instEdge))
                     RenameChiSet(getCHISet(store),memRegs);
 
-                else if (const AddrPE* alloc = SVFUtil::dyn_cast<AddrPE>(inst))
+                else if (const AddrPE* alloc = SVFUtil::dyn_cast<AddrPE>(instEdge))
                     RenameChiSet(getCHISet(alloc),memRegs);
 
             }
@@ -658,7 +659,7 @@ void MemSSA::dumpMSSA(raw_ostream& Out)
             {
                 Instruction& inst = *it;
                 bool isAppCall = isNonInstricCallSite(&inst) && !isExtCall(&inst);
-                if (isAppCall || isHeapAllocExtCall(&inst))
+                if (isAppCall)
                 {
                     const CallBlockNode* cs = pag->getICFG()->getCallBlockNode(&inst);
                     if(hasMU(cs))
@@ -728,6 +729,15 @@ void MemSSA::dumpMSSA(raw_ostream& Out)
                                 (*it)->dump();
                             }
                         }
+                        else if (const AddrPE* alloc = SVFUtil::dyn_cast<AddrPE>(edge))
+                        {
+                            CHISet& chiSet = getCHISet(alloc);
+                            for(CHISet::iterator ait = chiSet.begin(), eait = chiSet.end(); ait != eait; ++ait)
+                            {
+                                has_chi = true;
+                                (*ait)->dump();
+                            }
+                        }
                     }
                     if (has_chi)
                     {
@@ -751,3 +761,9 @@ void MemSSA::dumpMSSA(raw_ostream& Out)
         }
     }
 }
+
+void MemSSA::dump()
+{
+    dumpMSSA();
+}
+

@@ -119,7 +119,15 @@ public:
     }
     //@}
 
-    virtual const std::string toString() const;
+    virtual const Value* getValue() const override
+    {
+        const MemSSA::ALLOCCHI* mychi = this->getAllocChi();
+        const AddrPE* pe = mychi->getAllocInst();
+        const llvm::Value* val = pe->getValue();
+        return val;
+    }
+
+    virtual const std::string toString() const override;
 };
 
 /*

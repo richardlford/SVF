@@ -51,17 +51,43 @@ void UninitChecker::initialize(SVFModule* module)
     initSnks();
 }
 
+/// Initialize sources and sinks
+void UninitChecker::initSrcs()
+{
+    auto eit = svfg->end();
+    for (auto it = svfg->begin(); it != eit; it++) {
+        auto entry = *it;
+        auto nodeId = entry.first;
+        auto nodePtr = entry.second;
+        if (auto* aunode = dyn_cast<AllocUninitSVFGNode>(nodePtr))
+        {
+            this->addToSources(aunode);
+        }
+    }
+}
+
+void UninitChecker::initSnks()
+{
+
+}
+
+bool UninitChecker::isSink(const SVFGNode* node) const {
+    return !isa<StoreSVFGNode>(node);
+}
 void UninitChecker::reportBug(ProgSlice* slice)
 {
 
-    if(slice->isSatisfiableForPairs() == false)
+    if(!slice->isSatisfiableForPairs())
     {
         const SVFGNode* src = slice->getSource();
-        const CallBlockNode* cs = getSrcCSID(src);
-        SVFUtil::errs() << bugMsg2("\t Double Free :") <<  " memory allocation at : ("
-                        << getSourceLoc(cs->getCallSite()) << ")\n";
-        SVFUtil::errs() << "\t\t double free path: \n" << slice->evalFinalCond() << "\n";
-        slice->annotatePaths();
+        if (const AllocUninitSVFGNode* aunode = dyn_cast<AllocUninitSVFGNode>(src))
+        {
+            const llvm::Value* val = aunode->getValue();
+            SVFUtil::errs() << bugMsg2("\t Uninitialized :") <<  " variable use at : ("
+                            << getSourceLoc(val) << ")\n";
+            SVFUtil::errs() << "\t\t uninitialized path: \n" << slice->evalFinalCond() << "\n";
+            slice->annotatePaths();
+        }
     }
 }
 

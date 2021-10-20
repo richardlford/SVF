@@ -64,6 +64,12 @@ public:
     /// Initialize analysis
     void initialize(SVFModule* module);
 
+    /// Initialize sources and sinks
+    virtual void initSrcs() override;
+    virtual void initSnks() override;
+
+    virtual bool isSink(const SVFGNode* node) const override;
+
     /// Report file/close bugs
     void reportBug(ProgSlice* slice);
 };

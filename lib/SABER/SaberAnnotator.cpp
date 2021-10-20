@@ -27,6 +27,7 @@
  *      Author: Yulei Sui
  */
 
+#include <iostream>
 #include "SABER/SaberAnnotator.h"
 #include "SABER/ProgSlice.h"
 
@@ -68,7 +69,13 @@ void SaberAnnotator::annotateSinks()
             addMDTag(const_cast<CallInst*>(sink),sink->getArgOperand(0),rawstr.str());
         }
         else
-            assert(false && "sink node is not a actual parameter?");
+        {
+            const SVFGNode* node = *it;
+            llvm::errs() << *node;
+            llvm::errs() << "Unexpected sink type\n";
+            // assert(false && "sink node is not a actual parameter?");
+
+        }
     }
 }
 
